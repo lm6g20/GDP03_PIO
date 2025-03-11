@@ -72,14 +72,18 @@ void calibrate(HX711_ADC &LoadCell, int calAddr) {
   Serial.println("Place the load cell an a level stable surface.");
   Serial.println("Remove any load applied to the load cell.");
   Serial.println("Send 't' from serial monitor to set the tare offset.");
+  
   boolean _resume = false;
   while (_resume == false) {
     LoadCell.update();
     if (Serial.available() > 0) {
       if (Serial.available() > 0) {
         char inByte = Serial.read();
-        if (inByte == 't') LoadCell.tareNoDelay();
+        if (inByte == 't') 
+        LoadCell.tareNoDelay();
       }
+      else {
+        Serial.println("Invalid input. Please send 't' to tare.");
     }
     if (LoadCell.getTareStatus() == true) {
       Serial.println("Tare complete");
@@ -87,8 +91,8 @@ void calibrate(HX711_ADC &LoadCell, int calAddr) {
     }
   }
 
-  Serial.println("Now, place your known mass on the loadcell.");
-  Serial.println("Then send the weight of this mass (i.e. 100.0) from serial monitor.");
+  Serial.println("Place a mass of know weight on the loadcell.");
+  Serial.println("Then send the weight of this mass in grams (i.e. 100.0 [g]) from serial monitor.");
 
   float known_mass = 0;
   _resume = false;
@@ -100,6 +104,9 @@ void calibrate(HX711_ADC &LoadCell, int calAddr) {
         Serial.print("Known mass is: ");
         Serial.println(known_mass);
         _resume = true;
+      }
+      else{
+        Serial.println("Invalid mass input. Please enter a valid number.");
       }
     }
   }
@@ -137,6 +144,9 @@ void calibrate(HX711_ADC &LoadCell, int calAddr) {
       else if (inByte == 'n') {
         Serial.println("Value not saved to EEPROM");
         _resume = true;
+      }
+      else{
+        Serial.println("Invalid input. Please enter 'y' or 'n'.");
       }
     }
   }
@@ -330,11 +340,12 @@ void setup() {
         Serial.println("***");
         break; // Break the loop and start motor movement
       } else if (response == 'n' || response == 'N') {
-        Serial.println("Stepper motors will not start.");
+        Serial.println("Test aborted.");
+        Serial.println("***");
         return; // Exit setup, no motor movement
       } else {
         // If the input is invalid, ask the user again
-        Serial.println("Invalid input. Please enter 'y' to start or 'n' to stop.");
+        Serial.println("Invalid input. Please enter 'y' to start or 'n' to abort.");
         }
       }
     }
@@ -418,7 +429,7 @@ void loop() {
     // Check if the set number of cycles has been reached
     if (cycleCount >= maxCycles) {
         Serial.println("Test completed. Max cycles reached: ");
-        Serial.print(maxCycles);  // Fixed semicolon
+        Serial.print(maxCycles);
         Serial.println(" Cycles");
         Serial.println("***");
         break;  // Exit the loop after completing the desired number of cycles
