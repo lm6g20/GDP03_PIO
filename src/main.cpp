@@ -61,8 +61,7 @@ HX711_ADC LoadCell_H(HX711_dout_H, HX711_sck_H); //HX711 2
 const float targetForce = 2000.0; 
 
 // Set cycle count to zero
-int CyleCount = 0; // Cycle counter
-const int MaxCycles = 2;
+const int maxCycles = 2;
 
 //#### DEFINE FUNCTIONS ####
 
@@ -327,7 +326,7 @@ void setup() {
       char response = Serial.read(); // Read the user input
       if (response == 'y' || response == 'Y') {
         Serial.println("Starting test...");
-        Serial.println("!CAUTION: ACUTATOR MOTION!");
+        Serial.println("! CAUTION: ACUTATOR MOTION !");
         Serial.println("***");
         break; // Break the loop and start motor movement
       } else if (response == 'n' || response == 'N') {
@@ -346,12 +345,13 @@ void setup() {
 
 void loop() {
 
-  int stepCount = 0;
-  int maxCycles = 5;  // Set the maximum number of cycles you want to run
-
+  int stepCount_F = 0;
+  int stepCount_H = 0;
+  int cycleCount = 0;  // Reset cycle count
+  
   // Loop to perform motor movement for the set number of cycles
   while (cycleCount < maxCycles) {
-    
+
     // Move Forefoot Motor until target force is reached
     Serial.println("Moving Forefoot Motor...");
     while (true) {
@@ -365,19 +365,20 @@ void loop() {
         }
 
         stepMotor(stepDelay, HIGH, microstepSetting, 'F'); // Move Forefoot Motor
-        stepCount++;
+        stepCount_F++;  // Increment Forefoot step count
     }
 
     delay(1000); // Pause before moving back
 
     // Move back same number of steps for Forefoot Motor
     Serial.println("Returning Forefoot Motor...");
-    for (int i = 0; i < stepCount; i++) {
+    for (int i = 0; i < stepCount_F; i++) {
         stepMotor(stepDelay, LOW, microstepSetting, 'F');
     }
 
     Serial.println("Forefoot Motor Back to Start.");
-    
+    stepCount_F = 0;  // Reset step count after cycle
+
     delay(2000); // Pause before next cycle
 
     // Move Heel Motor until target force is reached
@@ -393,18 +394,19 @@ void loop() {
         }
 
         stepMotor(stepDelay, HIGH, microstepSetting, 'H'); // Move Heel Motor
-        stepCount++;
+        stepCount_H++;  // Increment Heel step count
     }
 
     delay(1000);
 
     // Move back same number of steps for Heel Motor
     Serial.println("Returning Heel Motor...");
-    for (int i = 0; i < stepCount; i++) {
+    for (int i = 0; i < stepCount_H; i++) {
         stepMotor(stepDelay, LOW, microstepSetting, 'H');
     }
 
     Serial.println("Heel Motor Back to Start.");
+    stepCount_H = 0;  // Reset step count after cycle
     
     delay(2000); // Pause before next cycle
 
@@ -416,13 +418,12 @@ void loop() {
     // Check if the set number of cycles has been reached
     if (cycleCount >= maxCycles) {
         Serial.println("Test completed. Max cycles reached: ");
-        Serial.print(MaxCycles)
-        Serial.print(' Cycles')
+        Serial.print(maxCycles);  // Fixed semicolon
+        Serial.println(" Cycles");
         Serial.println("***");
         break;  // Exit the loop after completing the desired number of cycles
     }
   }
-}
 
   //#### LEGACY - FIRST TEST ####
   // digitalWrite(DIR_F,HIGH); // Enables the motor to move in a particular direction
