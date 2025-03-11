@@ -101,7 +101,7 @@ void calibrate(HX711_ADC &LoadCell, int calAddr) {
   Serial.println(", use this as calibration value (calFactor) in your project sketch.");
   Serial.print("Save this value to EEPROM adress ");
   Serial.print(calAddr);
-  Serial.println("? (y/n)");
+  Serial.println("? (y: Yes, n: No)");
 
   _resume = false;
   while (_resume == false) {
@@ -157,7 +157,7 @@ void manualCalibrationInput(HX711_ADC &LoadCell, int calAddr) {
   _resume = false;
   Serial.print("Save this value to EEPROM adress ");
   Serial.print(calAddr);
-  Serial.println("? y/n");
+  Serial.println("? (y: Yes, n: No)");
   while (_resume == false) {
     if (Serial.available() > 0) {
       char inByte = Serial.read();
@@ -253,9 +253,6 @@ void setup() {
 
   //#### LOAD CELL CALIBRATION & START-UP ####
 
-  unsigned long stabilizingtime = 2000;  // 2-second startup stabilization
-  boolean _tare = true;  // Perform an automatic tare (zeroing)
-
   // Forefoot load cell calibration
   calibrateLoadCell(LoadCell_F, calVal_eepromAdress_F); 
 
@@ -263,9 +260,9 @@ void setup() {
   calibrateLoadCell(LoadCell_H, calVal_eepromAdress_H);
 
     // Ask user to start the test or not
-  Serial.println("Do you want to start the stepper motors? (y: Yes, n: No)");
+  Serial.println("Do you want to start the test? (y: Yes, n: No)");
   
-  // Wait for user input (y/n)
+  // Wait for user input (y: Yes, n: No)
   while (true) {
     if (Serial.available() > 0) {
       char response = Serial.read(); // Read the user input
@@ -328,5 +325,4 @@ void loop() {
   }
   }
   delay(500);
-  
 }
