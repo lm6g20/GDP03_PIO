@@ -154,6 +154,7 @@ void calibrate(HX711_ADC &LoadCell, int calAddr) {
   Serial.println("End calibration");
   Serial.println("***");
 }
+}
 
 void manualCalibrationInput(HX711_ADC &LoadCell, int calAddr) {
   Serial.println("Performing manual calibration...");
