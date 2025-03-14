@@ -252,6 +252,24 @@ void calibrateLoadCell(HX711_ADC &LoadCell, int calAddr) {
 }
 
 // Function to read and average the load cell values
+// void readLoadCell(char loadCellID, int samples = 5, int delayBetweenSamples = 10) {
+//   float total = 0.0;
+//   for (int i = 0; i < samples; i++) {
+//       if (loadCellID == 'F') {
+//           LoadCell_F.update();
+//           total += LoadCell_F.getData();
+//       } else if (loadCellID == 'H') {
+//           LoadCell_H.update();
+//           total += LoadCell_H.getData();
+//       } else {
+//           Serial.println("Invalid Load Cell Selection!");
+//           return; // Error return value
+//       }
+//       delay(delayBetweenSamples); // Short delay between samples
+//   }
+//   forceread = total/samples;
+//   return forceread; // Return averaged force
+// }
 float readLoadCell(char loadCellID, int samples = 5, int delayBetweenSamples = 10) {
   float total = 0.0;
 
@@ -264,12 +282,13 @@ float readLoadCell(char loadCellID, int samples = 5, int delayBetweenSamples = 1
           total += LoadCell_H.getData();
       } else {
           Serial.println("Invalid Load Cell Selection!");
-          return -1; // Error return value
+          return -1.0; // Return an error value
       }
-      delay(delayBetweenSamples); // Short delay between samples
+      delay(delayBetweenSamples);
   }
 
-  return total / samples; // Return averaged force
+  float forceread = total / samples;  // Compute the average
+  return forceread; // Return the averaged force value
 }
 
 // Function to move a stepper by one microstep
@@ -303,7 +322,7 @@ void stepMotor(int speedMicroseconds, bool direction, int microsteps, char motor
 
 void setup() {
   Serial.begin(57600); // Start Serial Monitor for debugging
-  Serial.print("Starting...");
+  Serial.println("Starting...");
   
   // Set stepper driver pins as OUTPUT's
   pinMode(DIR_F, OUTPUT);
@@ -346,7 +365,7 @@ void setup() {
       } else if (response == 'n' || response == 'N') {
         Serial.println("Test aborted.");
         Serial.println("***");
-        return; // Exit setup, no motor movement
+      // Exit setup, no motor movement
       } else {
         // If the input is invalid, ask the user again
         Serial.println("Invalid input. Please enter 'y' to start or 'n' to abort.");
