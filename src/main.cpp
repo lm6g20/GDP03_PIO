@@ -91,8 +91,7 @@ void calibrate(HX711_ADC &LoadCell, int calAddr) {
     }
   }
 
-  Serial.println("Place a mass of know weight on the loadcell.");
-  Serial.println("Then send the weight of this mass in grams (i.e. 100.0 [g]) from serial monitor.");
+  Serial.println("Place a mass of know weight on the loadcell, Then send the weight of this mass in grams (i.e. 100.0 [g]) from serial monitor.");
 
   float known_mass = 0;
   _resume = false;
@@ -117,7 +116,7 @@ void calibrate(HX711_ADC &LoadCell, int calAddr) {
   Serial.print("New calibration value has been set to: ");
   Serial.print(newCalibrationValue);
   Serial.println(", use this as calibration value (calFactor) in your project sketch.");
-  Serial.print("Save this value to EEPROM adress ");
+  Serial.print("Save this value to EEPROM address ");
   Serial.print(calAddr);
   Serial.println("? (y: Yes, n: No)");
 
@@ -177,7 +176,7 @@ void manualCalibrationInput(HX711_ADC &LoadCell, int calAddr) {
     }
   }
   _resume = false;
-  Serial.print("Save this value to EEPROM adress ");
+  Serial.print("Save this value to EEPROM address ");
   Serial.print(calAddr);
   Serial.println("? (y: Yes, n: No)");
   while (_resume == false) {
@@ -216,7 +215,7 @@ void calibrateLoadCell(HX711_ADC &LoadCell, int calAddr) {
   LoadCell.start(stabilizingtime, _tare);  // Start with stabilization and tare
   while (!LoadCell.update());  // Wait until LoadCell updates
 
-  Serial.println("Do you want to recalibrate the load cell? (y: Yes auto (known weight), m: Manual, n: No)");
+  // Serial.println("Do you want to recalibrate the load cell? (y: Yes auto (known weight), m: Manual, n: No)");
 
   while (true) {  // Loop to wait for user input
     if (Serial.available() > 0) {  // Check if user has typed something in Serial Monitor
@@ -322,8 +321,12 @@ void setup() {
 
   //#### LOAD CELL CALIBRATION & START-UP ####
 
+  Serial.println("Do you want to recalibrate the Forefoot load cell? (y: Yes auto (known weight), m: Manual, n: No)");
+
   // Forefoot load cell calibration
   calibrateLoadCell(LoadCell_F, calVal_eepromAdress_F); 
+
+  Serial.println("Do you want to recalibrate the Heel load cell? (y: Yes auto (known weight), m: Manual, n: No)");
 
   // Heel load cell calibration
   calibrateLoadCell(LoadCell_H, calVal_eepromAdress_H);
