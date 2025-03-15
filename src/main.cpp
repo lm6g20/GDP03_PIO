@@ -220,11 +220,14 @@ float calibrateLoadCell(HX711_ADC &LoadCell, int calAddr) {
         float savedValue;  // Declare a variable to hold the saved calibration value
         EEPROM.get(calAddr, savedValue);  // Retrieve the saved calibration value from EEPROM
         if (savedValue == 0) {
-          Serial.println("Warning: Calibration value is invalid or not set. Using default.");
+          Serial.println("Warning: Calibration value is invalid or not set. Using default: ");
           float calibrationVal = 1.0; // Set a default value or ask the user to calibrate
+          Serial.print(calibrationVal);
           return (calibrationVal);
         } else {
           float calibrationVal = savedValue;
+          Serial.println("Saved Value: ");
+          Serial.print(calibrationVal);
           return (calibrationVal);
           _resume = true;
           // LoadCell.setCalFactor(savedValue);  // Use the saved calibration factor
@@ -398,11 +401,10 @@ void loop() {
 
   stepMotor(stepDelay, LOW, stepsPerRevolution, 'F');
 
-  // float force = g*0.001*readLoadCell(LoadCell_F); // Get averaged force
-  // Serial.print("Forefoot Force (N): ");
-  // Serial.println(force);
-  
-  
+  float force = g*0.001*readLoadCell(LoadCell_F); // Get averaged force
+  Serial.print("Forefoot Force (N): ");
+  Serial.println(force);
+
   // Loop to perform motor movement for the set number of cycles
   // while (cycleCount < maxCycles) {
 
