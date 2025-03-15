@@ -44,7 +44,7 @@ const int HX711_dout_H = 6; // HX711 Heel dout pin
 const int HX711_sck_H = 7; // HX711 Heel sck pin
 
 // Microstepping Configuration
-const int microstepSetting = 4; // 1/4 Microstepping
+const int microstepSetting = 1; // 1/4 Microstepping
 const int stepsPerRevolution = 200 * microstepSetting; // 800 steps per revolution
 const int stepDelay = 60; // Speed in microseconds
 
@@ -289,7 +289,6 @@ float readLoadCell(char loadCellID, int samples = 5, int delayBetweenSamples = 1
 // Function to move a stepper by one microstep
 void stepMotor(int speedMicroseconds, bool direction, int microsteps, char motor) {
   int dirPin, pulPin;
-  
   // Select correct stepper motor
   if (motor == 'F') {
       dirPin = DIR_F;
@@ -376,7 +375,7 @@ void loop() {
   int stepCount_H = 0;
   int cycleCount = 0;  // Reset cycle count
 
-  stepMotor(stepDelay, HIGH, microstepSetting, 'H'); // Move Heel Motor
+  stepMotor(stepDelay, HIGH, stepsPerRevolution, 'F'); // Move Heel Motor
   
   // Loop to perform motor movement for the set number of cycles
   // while (cycleCount < maxCycles) {
