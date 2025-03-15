@@ -46,7 +46,7 @@ const int HX711_sck_H = 7; // HX711 Heel sck pin
 // Microstepping Configuration
 const int microstepSetting = 1; // 1/4 Microstepping
 const int stepsPerRevolution = 200 * microstepSetting; // 800 steps per revolution
-const int stepDelay = 60; // Speed in microseconds
+const int stepDelay = 100; // Speed in microseconds - 60
 
 // EEPROM adress for load cell calibration tare values
 const int calVal_eepromAdress_F = 0; // EEPROM adress for calibration value load cell Forefoot (4 bytes)
@@ -59,6 +59,7 @@ HX711_ADC LoadCell_H(HX711_dout_H, HX711_sck_H); //HX711 2
 
 // Target force in grams
 const float targetForce = 2000.0; 
+const float g = 9.81;
 
 // Set cycle count to zero
 const int maxCycles = 2;
@@ -205,24 +206,22 @@ void manualCalibrationInput(HX711_ADC &LoadCell, int calAddr) {
 void calibrateLoadCell(HX711_ADC &LoadCell, int calAddr) {
   unsigned long stabilizingtime = 2000;  // 2-second startup stabilization
   boolean _tare = true;  // Perform an automatic tare (zeroing)
-
-  LoadCell.begin();  // Initialize the load cell
+  // LoadCell.begin();  // Initialize the load cell
   LoadCell.start(stabilizingtime, _tare);  // Start with stabilization and tare
-  while (!LoadCell.update());  // Wait until LoadCell updates
-
-  // Serial.println("Do you want to recalibrate the load cell? (y: Yes auto (known weight), m: Manual, n: No)");
-
-  while (true) {  // Loop to wait for user input
+  if (LoadCell.getTareTimeoutFlag() || LoadCell.getSignalTimeoutFlag()) {
+    Serial.println("Timeout, check MCU>HX711 wiring and pin designations");
+    while (1);
+  }
+  while (!LoadCell.update());
+  Serial.println("Do you want to recalibrate the load cell? (y: Yes auto (known weight), m: Manual, n: No)");
     if (Serial.available() > 0) {  // Check if user has typed something in Serial Monitor
       char response = Serial.read();  // Read the response character
 
       if (response == 'y') {  // If the user presses 'y', start the regular calibration process
-        Serial.println("Starting regular calibration...");
         calibrate(LoadCell, calAddr);  // Call the calibrate function to begin the calibration process
         break;  // Break out of the loop once calibration is done
       } 
       else if (response == 'm') {  // If the user presses 'm', start the manual calibration process
-        Serial.println("Starting manual calibration...");
         manualCalibrationInput(LoadCell, calAddr);  // Call the manual calibration function
         break;  // Break out of the loop once manual calibration is done
       } 
@@ -243,8 +242,7 @@ void calibrateLoadCell(HX711_ADC &LoadCell, int calAddr) {
         Serial.println("Invalid input. Please enter 'y' for regular calibration, 'm' for manual calibration, or 'n' to skip.");
       }
     }
-  }
-}
+   }
 
 // Function to read and average the load cell values
 // void readLoadCell(char loadCellID, int samples = 5, int delayBetweenSamples = 10) {
@@ -277,11 +275,10 @@ float readLoadCell(char loadCellID, int samples = 5, int delayBetweenSamples = 1
           total += LoadCell_H.getData();
       } else {
           Serial.println("Invalid Load Cell Selection!");
-          return -1.0; // Return an error value
+          return; // Return an error value
       }
       delay(delayBetweenSamples);
   }
-
   float forceread = total / samples;  // Compute the average
   return forceread; // Return the averaged force value
 }
@@ -328,14 +325,17 @@ void setup() {
   digitalWrite(ENA_F, LOW);
   digitalWrite(ENA_H, LOW);
 
+  LoadCell_F.begin();
+  LoadCell_H.begin();
+
   // Serial.println("Stepper Motors & Drivers Initialized.");
 
   // //#### LOAD CELL CALIBRATION & START-UP ####
 
-  // Serial.println("Do you want to recalibrate the Forefoot load cell? (y: Yes auto (known weight), m: Manual, n: No)");
+  Serial.println("Do you want to recalibrate the Forefoot load cell? (y: Yes auto (known weight), m: Manual, n: No)");
 
-  // // Forefoot load cell calibration
-  // calibrateLoadCell(LoadCell_F, calVal_eepromAdress_F); 
+  // Forefoot load cell calibration
+  calibrateLoadCell(LoadCell_F, calVal_eepromAdress_F); 
 
   // Serial.println("Do you want to recalibrate the Heel load cell? (y: Yes auto (known weight), m: Manual, n: No)");
 
@@ -375,7 +375,10 @@ void loop() {
   int stepCount_H = 0;
   int cycleCount = 0;  // Reset cycle count
 
-  stepMotor(stepDelay, HIGH, stepsPerRevolution, 'F'); // Move Heel Motor
+  // float force = g*0.001*readLoadCell('H'); // Get averaged force
+  // Serial.print("Force (N): ");
+  // Serial.println(force);
+  
   
   // Loop to perform motor movement for the set number of cycles
   // while (cycleCount < maxCycles) {
@@ -384,7 +387,7 @@ void loop() {
   //   Serial.println("Moving Forefoot Motor...");
   //   while (true) {
   //       float force = readLoadCell('F'); // Get averaged force
-  //       Serial.print("Force (F): ");
+  //       Serial.print("Forefoot Loading Force (N): ");
   //       Serial.println(force);
 
   //       if (force >= targetForce) {
@@ -392,7 +395,7 @@ void loop() {
   //           break;
   //       }
 
-  //       stepMotor(stepDelay, HIGH, microstepSetting, 'F'); // Move Forefoot Motor
+  //       stepMotor(stepDelay, HIGH, stepsPerRevolution, 'F'); // Move Forefoot Motor
   //       stepCount_F++;  // Increment Forefoot step count
   //   }
 
@@ -401,7 +404,7 @@ void loop() {
   //   // Move back same number of steps for Forefoot Motor
   //   Serial.println("Returning Forefoot Motor...");
   //   for (int i = 0; i < stepCount_F; i++) {
-  //       stepMotor(stepDelay, LOW, microstepSetting, 'F');
+  //       stepMotor(stepDelay, LOW, stepsPerRevolution, 'F');
   //   }
 
   //   Serial.println("Forefoot Motor Back to Start.");
@@ -413,7 +416,7 @@ void loop() {
   //   Serial.println("Moving Heel Motor...");
   //   while (true) {
   //       float force = readLoadCell('H'); // Get averaged force
-  //       Serial.print("Force (H): ");
+  //       Serial.print("Heel Loading Force (H): ");
   //       Serial.println(force);
 
   //       if (force >= targetForce) {
@@ -421,7 +424,7 @@ void loop() {
   //           break;
   //       }
 
-  //       stepMotor(stepDelay, HIGH, microstepSetting, 'H'); // Move Heel Motor
+  //       stepMotor(stepDelay, HIGH, stepsPerRevolution, 'H'); // Move Heel Motor
   //       stepCount_H++;  // Increment Heel step count
   //   }
 
@@ -430,7 +433,7 @@ void loop() {
   //   // Move back same number of steps for Heel Motor
   //   Serial.println("Returning Heel Motor...");
   //   for (int i = 0; i < stepCount_H; i++) {
-  //       stepMotor(stepDelay, LOW, microstepSetting, 'H');
+  //       stepMotor(stepDelay, LOW, stepsPerRevolution, 'H');
   //   }
 
   //   Serial.println("Heel Motor Back to Start.");
