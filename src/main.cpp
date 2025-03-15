@@ -23,9 +23,9 @@
 
 #include <Arduino.h> // Include the core Arduino functions (digitalWrite, pinMode, etc.)
 #include <HX711_ADC.h> // Include the HX711_ADC library for interfacing with the HX711 load cell amplifier
-#if defined(ESP8266)|| defined(ESP32) || defined(AVR) // Check if the board is ESP8266, ESP32, or AVR-based (Arduino Mega)
+// #if defined(ESP8266)|| defined(ESP32) || defined(AVR) // Check if the board is ESP8266, ESP32, or AVR-based (Arduino Mega)
 #include <EEPROM.h> // Include the EEPROM library for storing calibration values and settings in non-volatile memory
-#endif // End of conditional compilation for EEPROM inclusion
+// #endif // End of conditional compilation for EEPROM inclusion
 
 //##### DEFINE PINOUT ####
 
@@ -44,18 +44,18 @@ const int HX711_dout_H = 6; // HX711 Heel dout pin
 const int HX711_sck_H = 7; // HX711 Heel sck pin
 
 // Microstepping Configuration
-const int microstepSetting = 1; // 1/4 Microstepping
+const int microstepSetting = 4; // 1/4 Microstepping
 const int stepsPerRevolution = 200 * microstepSetting; // 800 steps per revolution
-const int stepDelay = 100; // Speed in microseconds - 60
+const int stepDelay = 60; // Speed in microseconds - 60
 
 // EEPROM adress for load cell calibration tare values
 const int calVal_eepromAdress_F = 0; // EEPROM adress for calibration value load cell Forefoot (4 bytes)
 const int calVal_eepromAdress_H = 4; // EEPROM adress for calibration value load cell Heel (4 bytes)
-unsigned long t = 0;
 
 // HX711 constructor's (dout pin, sck pin)
 HX711_ADC LoadCell_F(HX711_dout_F, HX711_sck_F); //HX711 1
 HX711_ADC LoadCell_H(HX711_dout_H, HX711_sck_H); //HX711 2
+unsigned long t = 0;
 
 // Target force in grams
 const float targetForce = 2000.0; 
@@ -80,11 +80,8 @@ void calibrate(HX711_ADC &LoadCell, int calAddr) {
     if (Serial.available() > 0) {
       if (Serial.available() > 0) {
         char inByte = Serial.read();
-        if (inByte == 't') 
-        LoadCell.tareNoDelay();
+        if (inByte == 't') LoadCell.tareNoDelay();
       }
-      else {
-        Serial.println("Invalid input. Please send 't' to tare.");
     }
     if (LoadCell.getTareStatus() == true) {
       Serial.println("Tare complete");
@@ -118,6 +115,7 @@ void calibrate(HX711_ADC &LoadCell, int calAddr) {
   Serial.println("Save this value to EEPROM address ");
   Serial.print(calAddr);
   Serial.println("? (y: Yes, n: No)");
+  
   _resume = false;
   while (_resume == false) {
     if (Serial.available() > 0) {
@@ -146,9 +144,9 @@ void calibrate(HX711_ADC &LoadCell, int calAddr) {
       }
     }
   }
+
   Serial.println("End calibration");
   Serial.println("***");
-}
 }
 
 void manualCalibrationInput(HX711_ADC &LoadCell, int calAddr) {
@@ -212,19 +210,24 @@ void calibrateLoadCell(HX711_ADC &LoadCell, int calAddr) {
     Serial.println("Timeout, check MCU>HX711 wiring and pin designations");
     while (1);
   }
+  else {
+    LoadCell.setCalFactor(1.0); // user set calibration value (float), initial value 1.0 may be used for this sketch
+    // Serial.println("Startup is complete");
+  }
   while (!LoadCell.update());
-  Serial.println("Do you want to recalibrate the load cell? (y: Yes auto (known weight), m: Manual, n: No)");
+  boolean _resume = false;
+  while (_resume == false){
+    // Serial.println("Do you want to recalibrate the load cell? (y: Yes auto (known weight), m: Manual, n: No)");
     if (Serial.available() > 0) {  // Check if user has typed something in Serial Monitor
       char response = Serial.read();  // Read the response character
-
       if (response == 'y') {  // If the user presses 'y', start the regular calibration process
-        calibrate(LoadCell, calAddr);  // Call the calibrate function to begin the calibration process
-        break;  // Break out of the loop once calibration is done
-      } 
+        calibrate(LoadCell, calAddr);
+        _resume = true;
+        }  // Call the calibrate function to begin the calibration process
       else if (response == 'm') {  // If the user presses 'm', start the manual calibration process
         manualCalibrationInput(LoadCell, calAddr);  // Call the manual calibration function
-        break;  // Break out of the loop once manual calibration is done
-      } 
+        _resume = true;  
+        } 
       else if (response == 'n') {  // If the user presses 'n', skip calibration
         Serial.println("Skipping calibration. Using saved value.");
         float savedValue;  // Declare a variable to hold the saved calibration value
@@ -235,11 +238,12 @@ void calibrateLoadCell(HX711_ADC &LoadCell, int calAddr) {
         } else {
           LoadCell.setCalFactor(savedValue);  // Use the saved calibration factor
         }
-        break;  // Break out of the loop once the calibration value is set
-      } 
+        _resume = true;;  // Break out of the loop once the calibration value is set
+        } 
       else {
         // If the user enters an invalid input, ask them again
         Serial.println("Invalid input. Please enter 'y' for regular calibration, 'm' for manual calibration, or 'n' to skip.");
+        }
       }
     }
    }
@@ -263,24 +267,44 @@ void calibrateLoadCell(HX711_ADC &LoadCell, int calAddr) {
 //   forceread = total/samples;
 //   return forceread; // Return averaged force
 // }
-float readLoadCell(char loadCellID, int samples = 5, int delayBetweenSamples = 10) {
-  float total = 0.0;
+// float readLoadCell(char loadCellID, int samples = 5, int delayBetweenSamples = 10) {
+//   float total = 0.0;
 
-  for (int i = 0; i < samples; i++) {
-      if (loadCellID == 'F') {
-          LoadCell_F.update();
-          total += LoadCell_F.getData();
-      } else if (loadCellID == 'H') {
-          LoadCell_H.update();
-          total += LoadCell_H.getData();
-      } else {
-          Serial.println("Invalid Load Cell Selection!");
-          return; // Return an error value
-      }
-      delay(delayBetweenSamples);
-  }
-  float forceread = total / samples;  // Compute the average
-  return forceread; // Return the averaged force value
+//   for (int i = 0; i < samples; i++) {
+//       if (loadCellID == 'F') {
+//           LoadCell_F.update();
+//           total += LoadCell_F.getData();
+//       } else if (loadCellID == 'H') {
+//           LoadCell_H.update();
+//           total += LoadCell_H.getData();
+//       } else {
+//           Serial.println("Invalid Load Cell Selection!");
+//           return; // Return an error value
+//       }
+//       delay(delayBetweenSamples);
+//   }
+//   float forceread = total / samples;  // Compute the average
+//   return forceread; // Return the averaged force value
+// }
+
+float readLoadCell(HX711_ADC &LoadCell){
+  // static boolean newDataReady = 0;
+  // // check for new data/start next conversion:
+  // if (LoadCell.update()) newDataReady = true;
+  // // get smoothed value from the dataset:
+  // if (newDataReady) {
+  //   if (millis() > t) {
+  //     float i = LoadCell.getData();
+  //     Serial.print("Load_cell output val: ");
+  //     Serial.println(i);
+  //     newDataReady = 0;
+  //     t = millis();
+  //     return i;
+  //   }
+  // }
+  float i = LoadCell.getData();
+  Serial.print("Load_cell output val: ");
+  Serial.println(i);
 }
 
 // Function to move a stepper by one microstep
@@ -342,28 +366,28 @@ void setup() {
   // // Heel load cell calibration
   // calibrateLoadCell(LoadCell_H, calVal_eepromAdress_H);
 
-  //   // Ask user to start the test or not
-  // Serial.println("Do you want to start the test? (y: Yes, n: No)");
+    // Ask user to start the test or not
+  Serial.println("Do you want to start the test? (y: Yes, n: No)");
   
-  // // Wait for user input (y: Yes, n: No)
-  // while (true) {
-  //   if (Serial.available() > 0) {
-  //     char response = Serial.read(); // Read the user input
-  //     if (response == 'y' || response == 'Y') {
-  //       Serial.println("Starting test...");
-  //       Serial.println("! CAUTION: ACUTATOR MOTION !");
-  //       Serial.println("***");
-  //       break; // Break the loop and start motor movement
-  //     } else if (response == 'n' || response == 'N') {
-  //       Serial.println("Test aborted.");
-  //       Serial.println("***");
-  //     // Exit setup, no motor movement
-  //     } else {
-  //       // If the input is invalid, ask the user again
-  //       Serial.println("Invalid input. Please enter 'y' to start or 'n' to abort.");
-  //       }
-  //     }
-  //   }
+  // Wait for user input (y: Yes, n: No)
+  while (true) {
+    if (Serial.available() > 0) {
+      char response = Serial.read(); // Read the user input
+      if (response == 'y' || response == 'Y') {
+        Serial.println("Starting test...");
+        Serial.println("! CAUTION: ACUTATOR MOTION !");
+        Serial.println("***");
+        break; // Break the loop and start motor movement
+      } else if (response == 'n' || response == 'N') {
+        Serial.println("Test aborted.");
+        Serial.println("***");
+      // Exit setup, no motor movement
+      } else {
+        // If the input is invalid, ask the user again
+        Serial.println("Invalid input. Please enter 'y' to start or 'n' to abort.");
+        }
+      }
+    }
 
 }
 
@@ -375,8 +399,10 @@ void loop() {
   int stepCount_H = 0;
   int cycleCount = 0;  // Reset cycle count
 
-  // float force = g*0.001*readLoadCell('H'); // Get averaged force
-  // Serial.print("Force (N): ");
+  stepMotor(stepDelay, LOW, stepsPerRevolution, 'H');
+
+  // float force = g*0.001*readLoadCell(LoadCell_F); // Get averaged force
+  // Serial.print("Forefoot Force (N): ");
   // Serial.println(force);
   
   
