@@ -46,7 +46,7 @@ const int HX711_sck_H = 7; // HX711 Heel sck pin
 // Microstepping Configuration
 const int microstepSetting = 4; // 1/4 Microstepping
 const int stepsPerRevolution = 200 * microstepSetting; // 800 steps per revolution
-const int stepDelay = 500; // Speed in microseconds
+const int stepDelay = 60; // Speed in microseconds
 
 // EEPROM adress for load cell calibration tare values
 const int calVal_eepromAdress_F = 0; // EEPROM adress for calibration value load cell Forefoot (4 bytes)
@@ -109,17 +109,14 @@ void calibrate(HX711_ADC &LoadCell, int calAddr) {
       }
     }
   }
-
   LoadCell.refreshDataSet(); //refresh the dataset to be sure that the known mass is measured correct
   float newCalibrationValue = LoadCell.getNewCalibration(known_mass); //get the new calibration value
-
   Serial.print("New calibration value has been set to: ");
   Serial.print(newCalibrationValue);
-  Serial.println(", use this as calibration value (calFactor) in your project sketch.");
-  Serial.print("Save this value to EEPROM address ");
+  Serial.print(", use this as calibration value (calFactor) in your project sketch.");
+  Serial.println("Save this value to EEPROM address ");
   Serial.print(calAddr);
   Serial.println("? (y: Yes, n: No)");
-
   _resume = false;
   while (_resume == false) {
     if (Serial.available() > 0) {
@@ -138,7 +135,6 @@ void calibrate(HX711_ADC &LoadCell, int calAddr) {
         Serial.print(" saved to EEPROM address: ");
         Serial.println(calAddr);
         _resume = true;
-
       }
       else if (inByte == 'n') {
         Serial.println("Value not saved to EEPROM");
@@ -149,7 +145,6 @@ void calibrate(HX711_ADC &LoadCell, int calAddr) {
       }
     }
   }
-
   Serial.println("End calibration");
   Serial.println("***");
 }
@@ -306,9 +301,7 @@ void stepMotor(int speedMicroseconds, bool direction, int microsteps, char motor
       Serial.println("Invalid motor selection!");
       return;
   }
-
   digitalWrite(dirPin, direction); // Set direction
-
   // Loop for the correct number of microsteps
   for (int i = 0; i < microsteps; i++) {
       digitalWrite(pulPin, HIGH);
@@ -336,42 +329,42 @@ void setup() {
   digitalWrite(ENA_F, LOW);
   digitalWrite(ENA_H, LOW);
 
-  Serial.println("Stepper Motors & Drivers Initialized.");
+  // Serial.println("Stepper Motors & Drivers Initialized.");
 
-  //#### LOAD CELL CALIBRATION & START-UP ####
+  // //#### LOAD CELL CALIBRATION & START-UP ####
 
-  Serial.println("Do you want to recalibrate the Forefoot load cell? (y: Yes auto (known weight), m: Manual, n: No)");
+  // Serial.println("Do you want to recalibrate the Forefoot load cell? (y: Yes auto (known weight), m: Manual, n: No)");
 
-  // Forefoot load cell calibration
-  calibrateLoadCell(LoadCell_F, calVal_eepromAdress_F); 
+  // // Forefoot load cell calibration
+  // calibrateLoadCell(LoadCell_F, calVal_eepromAdress_F); 
 
-  Serial.println("Do you want to recalibrate the Heel load cell? (y: Yes auto (known weight), m: Manual, n: No)");
+  // Serial.println("Do you want to recalibrate the Heel load cell? (y: Yes auto (known weight), m: Manual, n: No)");
 
-  // Heel load cell calibration
-  calibrateLoadCell(LoadCell_H, calVal_eepromAdress_H);
+  // // Heel load cell calibration
+  // calibrateLoadCell(LoadCell_H, calVal_eepromAdress_H);
 
-    // Ask user to start the test or not
-  Serial.println("Do you want to start the test? (y: Yes, n: No)");
+  //   // Ask user to start the test or not
+  // Serial.println("Do you want to start the test? (y: Yes, n: No)");
   
-  // Wait for user input (y: Yes, n: No)
-  while (true) {
-    if (Serial.available() > 0) {
-      char response = Serial.read(); // Read the user input
-      if (response == 'y' || response == 'Y') {
-        Serial.println("Starting test...");
-        Serial.println("! CAUTION: ACUTATOR MOTION !");
-        Serial.println("***");
-        break; // Break the loop and start motor movement
-      } else if (response == 'n' || response == 'N') {
-        Serial.println("Test aborted.");
-        Serial.println("***");
-      // Exit setup, no motor movement
-      } else {
-        // If the input is invalid, ask the user again
-        Serial.println("Invalid input. Please enter 'y' to start or 'n' to abort.");
-        }
-      }
-    }
+  // // Wait for user input (y: Yes, n: No)
+  // while (true) {
+  //   if (Serial.available() > 0) {
+  //     char response = Serial.read(); // Read the user input
+  //     if (response == 'y' || response == 'Y') {
+  //       Serial.println("Starting test...");
+  //       Serial.println("! CAUTION: ACUTATOR MOTION !");
+  //       Serial.println("***");
+  //       break; // Break the loop and start motor movement
+  //     } else if (response == 'n' || response == 'N') {
+  //       Serial.println("Test aborted.");
+  //       Serial.println("***");
+  //     // Exit setup, no motor movement
+  //     } else {
+  //       // If the input is invalid, ask the user again
+  //       Serial.println("Invalid input. Please enter 'y' to start or 'n' to abort.");
+  //       }
+  //     }
+  //   }
 
 }
 
@@ -382,84 +375,88 @@ void loop() {
   int stepCount_F = 0;
   int stepCount_H = 0;
   int cycleCount = 0;  // Reset cycle count
+
+  stepMotor(stepDelay, HIGH, microstepSetting, 'H'); // Move Heel Motor
   
   // Loop to perform motor movement for the set number of cycles
-  while (cycleCount < maxCycles) {
+  // while (cycleCount < maxCycles) {
 
-    // Move Forefoot Motor until target force is reached
-    Serial.println("Moving Forefoot Motor...");
-    while (true) {
-        float force = readLoadCell('F'); // Get averaged force
-        Serial.print("Force (F): ");
-        Serial.println(force);
+  //   // Move Forefoot Motor until target force is reached
+  //   Serial.println("Moving Forefoot Motor...");
+  //   while (true) {
+  //       float force = readLoadCell('F'); // Get averaged force
+  //       Serial.print("Force (F): ");
+  //       Serial.println(force);
 
-        if (force >= targetForce) {
-            Serial.println("Target force reached!");
-            break;
-        }
+  //       if (force >= targetForce) {
+  //           Serial.println("Target force reached!");
+  //           break;
+  //       }
 
-        stepMotor(stepDelay, HIGH, microstepSetting, 'F'); // Move Forefoot Motor
-        stepCount_F++;  // Increment Forefoot step count
-    }
+  //       stepMotor(stepDelay, HIGH, microstepSetting, 'F'); // Move Forefoot Motor
+  //       stepCount_F++;  // Increment Forefoot step count
+  //   }
 
-    delay(1000); // Pause before moving back
+  //   delay(1000); // Pause before moving back
 
-    // Move back same number of steps for Forefoot Motor
-    Serial.println("Returning Forefoot Motor...");
-    for (int i = 0; i < stepCount_F; i++) {
-        stepMotor(stepDelay, LOW, microstepSetting, 'F');
-    }
+  //   // Move back same number of steps for Forefoot Motor
+  //   Serial.println("Returning Forefoot Motor...");
+  //   for (int i = 0; i < stepCount_F; i++) {
+  //       stepMotor(stepDelay, LOW, microstepSetting, 'F');
+  //   }
 
-    Serial.println("Forefoot Motor Back to Start.");
-    stepCount_F = 0;  // Reset step count after cycle
+  //   Serial.println("Forefoot Motor Back to Start.");
+  //   stepCount_F = 0;  // Reset step count after cycle
 
-    delay(2000); // Pause before next cycle
+  //   delay(2000); // Pause before next cycle
 
-    // Move Heel Motor until target force is reached
-    Serial.println("Moving Heel Motor...");
-    while (true) {
-        float force = readLoadCell('H'); // Get averaged force
-        Serial.print("Force (H): ");
-        Serial.println(force);
+  //   // Move Heel Motor until target force is reached
+  //   Serial.println("Moving Heel Motor...");
+  //   while (true) {
+  //       float force = readLoadCell('H'); // Get averaged force
+  //       Serial.print("Force (H): ");
+  //       Serial.println(force);
 
-        if (force >= targetForce) {
-            Serial.println("Target force reached!");
-            break;
-        }
+  //       if (force >= targetForce) {
+  //           Serial.println("Target force reached!");
+  //           break;
+  //       }
 
-        stepMotor(stepDelay, HIGH, microstepSetting, 'H'); // Move Heel Motor
-        stepCount_H++;  // Increment Heel step count
-    }
+  //       stepMotor(stepDelay, HIGH, microstepSetting, 'H'); // Move Heel Motor
+  //       stepCount_H++;  // Increment Heel step count
+  //   }
 
-    delay(1000);
+  //   delay(1000);
 
-    // Move back same number of steps for Heel Motor
-    Serial.println("Returning Heel Motor...");
-    for (int i = 0; i < stepCount_H; i++) {
-        stepMotor(stepDelay, LOW, microstepSetting, 'H');
-    }
+  //   // Move back same number of steps for Heel Motor
+  //   Serial.println("Returning Heel Motor...");
+  //   for (int i = 0; i < stepCount_H; i++) {
+  //       stepMotor(stepDelay, LOW, microstepSetting, 'H');
+  //   }
 
-    Serial.println("Heel Motor Back to Start.");
-    stepCount_H = 0;  // Reset step count after cycle
+  //   Serial.println("Heel Motor Back to Start.");
+  //   stepCount_H = 0;  // Reset step count after cycle
     
-    delay(2000); // Pause before next cycle
+  //   delay(2000); // Pause before next cycle
 
-    // Increment the cycle count after both motors have completed the cycle
-    cycleCount++; 
-    Serial.print("Cycle count: ");
-    Serial.println(cycleCount);
+  //   // Increment the cycle count after both motors have completed the cycle
+  //   cycleCount++; 
+  //   Serial.print("Cycle count: ");
+  //   Serial.println(cycleCount);
 
-    // Check if the set number of cycles has been reached
-    if (cycleCount >= maxCycles) {
-        Serial.println("Test completed. Max cycles reached: ");
-        Serial.print(maxCycles);
-        Serial.println(" Cycles");
-        Serial.println("***");
-        break;  // Exit the loop after completing the desired number of cycles
-    }
-  }
+  //   // Check if the set number of cycles has been reached
+  //   if (cycleCount >= maxCycles) {
+  //       Serial.println("Test completed. Max cycles reached: ");
+  //       Serial.print(maxCycles);
+  //       Serial.println(" Cycles");
+  //       Serial.println("***");
+  //       break;  // Exit the loop after completing the desired number of cycles
+  //   }
+  // }
 
-  //#### LEGACY - FIRST TEST ####
+
+  //###############################
+  // #### LEGACY - FIRST TEST ####
   // digitalWrite(DIR_F,HIGH); // Enables the motor to move in a particular direction
   // for (int i = 0; i < 6; i++) {  // 48 times = one revolution
   //   for (int x = 0; x < 3200; x++) { // 3200 pulse/rev
