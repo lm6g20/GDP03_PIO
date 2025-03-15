@@ -44,9 +44,9 @@ const int HX711_dout_H = 6; // HX711 Heel dout pin
 const int HX711_sck_H = 7; // HX711 Heel sck pin
 
 // Microstepping Configuration
-const int microstepSetting = 4; // 1/4 Microstepping
+const int microstepSetting = 1; // 1/4 Microstepping
 const int stepsPerRevolution = 200 * microstepSetting; // 800 steps per revolution
-const int stepDelay = 60; // Speed in microseconds - 60
+const int stepDelay = 400; // Speed in microseconds - 60
 
 // EEPROM adress for load cell calibration tare values
 const int calVal_eepromAdress_F = 0; // EEPROM adress for calibration value load cell Forefoot (4 bytes)
@@ -66,7 +66,7 @@ const int maxCycles = 2;
 
 //#### DEFINE FUNCTIONS ####
 
-void calibrate(HX711_ADC &LoadCell, int calAddr) {
+float calibrate(HX711_ADC &LoadCell, int calAddr) {
   Serial.println("Performing automatic calibration...");
   Serial.println("***");
   Serial.println("Start calibration:");
@@ -144,19 +144,18 @@ void calibrate(HX711_ADC &LoadCell, int calAddr) {
       }
     }
   }
-
-  Serial.println("End calibration");
   Serial.println("***");
+  return(newCalibrationValue);
 }
 
-void manualCalibrationInput(HX711_ADC &LoadCell, int calAddr) {
+float manualCalibrationInput(HX711_ADC &LoadCell, int calAddr) {
   Serial.println("Performing manual calibration...");
   float oldCalibrationValue = LoadCell.getCalFactor();
   boolean _resume = false;
   Serial.println("***");
   Serial.print("Current value is: ");
   Serial.println(oldCalibrationValue);
-  Serial.println("Now, send the new value from serial monitor.");
+  Serial.println("Now, send the new value from serial monitor, i.e 14.4.");
   float newCalibrationValue;
   while (_resume == false) {
     if (Serial.available() > 0) {
@@ -164,7 +163,6 @@ void manualCalibrationInput(HX711_ADC &LoadCell, int calAddr) {
       if (newCalibrationValue != 0) {
         Serial.print("New calibration value is: ");
         Serial.println(newCalibrationValue);
-        LoadCell.setCalFactor(newCalibrationValue);
         _resume = true;
       }
     }
@@ -197,36 +195,25 @@ void manualCalibrationInput(HX711_ADC &LoadCell, int calAddr) {
       }
     }
   }
-  Serial.println("End change calibration value");
+  Serial.println("End of manual calibration value");
   Serial.println("***");
+  return(newCalibrationValue);
 }
 
-void calibrateLoadCell(HX711_ADC &LoadCell, int calAddr) {
-  unsigned long stabilizingtime = 2000;  // 2-second startup stabilization
-  boolean _tare = true;  // Perform an automatic tare (zeroing)
-  // LoadCell.begin();  // Initialize the load cell
-  LoadCell.start(stabilizingtime, _tare);  // Start with stabilization and tare
-  if (LoadCell.getTareTimeoutFlag() || LoadCell.getSignalTimeoutFlag()) {
-    Serial.println("Timeout, check MCU>HX711 wiring and pin designations");
-    while (1);
-  }
-  else {
-    LoadCell.setCalFactor(1.0); // user set calibration value (float), initial value 1.0 may be used for this sketch
-    // Serial.println("Startup is complete");
-  }
-  while (!LoadCell.update());
+float calibrateLoadCell(HX711_ADC &LoadCell, int calAddr) {
   boolean _resume = false;
   while (_resume == false){
-    // Serial.println("Do you want to recalibrate the load cell? (y: Yes auto (known weight), m: Manual, n: No)");
     if (Serial.available() > 0) {  // Check if user has typed something in Serial Monitor
       char response = Serial.read();  // Read the response character
       if (response == 'y') {  // If the user presses 'y', start the regular calibration process
-        calibrate(LoadCell, calAddr);
+        float calibrationVal = calibrate(LoadCell, calAddr);
+        return (calibrationVal);
         _resume = true;
         }  // Call the calibrate function to begin the calibration process
       else if (response == 'm') {  // If the user presses 'm', start the manual calibration process
-        manualCalibrationInput(LoadCell, calAddr);  // Call the manual calibration function
-        _resume = true;  
+        float calibrationVal = manualCalibrationInput(LoadCell, calAddr);  // Call the manual calibration function
+        return (calibrationVal);
+        _resume = true; 
         } 
       else if (response == 'n') {  // If the user presses 'n', skip calibration
         Serial.println("Skipping calibration. Using saved value.");
@@ -234,11 +221,15 @@ void calibrateLoadCell(HX711_ADC &LoadCell, int calAddr) {
         EEPROM.get(calAddr, savedValue);  // Retrieve the saved calibration value from EEPROM
         if (savedValue == 0) {
           Serial.println("Warning: Calibration value is invalid or not set. Using default.");
-          LoadCell.setCalFactor(1.0);  // Set a default value or ask the user to calibrate
+          float calibrationVal = 1.0; // Set a default value or ask the user to calibrate
+          return (calibrationVal);
         } else {
-          LoadCell.setCalFactor(savedValue);  // Use the saved calibration factor
+          float calibrationVal = savedValue;
+          return (calibrationVal);
+          _resume = true;
+          // LoadCell.setCalFactor(savedValue);  // Use the saved calibration factor
         }
-        _resume = true;;  // Break out of the loop once the calibration value is set
+        // _resume = true;  // Break out of the loop once the calibration value is set
         } 
       else {
         // If the user enters an invalid input, ask them again
@@ -288,23 +279,10 @@ void calibrateLoadCell(HX711_ADC &LoadCell, int calAddr) {
 // }
 
 float readLoadCell(HX711_ADC &LoadCell){
-  // static boolean newDataReady = 0;
-  // // check for new data/start next conversion:
-  // if (LoadCell.update()) newDataReady = true;
-  // // get smoothed value from the dataset:
-  // if (newDataReady) {
-  //   if (millis() > t) {
-  //     float i = LoadCell.getData();
-  //     Serial.print("Load_cell output val: ");
-  //     Serial.println(i);
-  //     newDataReady = 0;
-  //     t = millis();
-  //     return i;
-  //   }
-  // }
   float i = LoadCell.getData();
   Serial.print("Load_cell output val: ");
   Serial.println(i);
+  return i;
 }
 
 // Function to move a stepper by one microstep
@@ -349,24 +327,43 @@ void setup() {
   digitalWrite(ENA_F, LOW);
   digitalWrite(ENA_H, LOW);
 
+  Serial.println("Stepper Motors & Drivers Initialised.");
+
+  // initalise load cells
   LoadCell_F.begin();
   LoadCell_H.begin();
+  unsigned long stabilizingtime = 2000; // tare preciscion can be improved by adding a few seconds of stabilizing time
+  boolean _tare = true; //set this to false if you don't want tare to be performed in the next step
+  byte loadcell_F_rdy = 0;
+  byte loadcell_H_rdy = 0;
+  while ((loadcell_F_rdy + loadcell_H_rdy) < 2) { //run startup, stabilization and tare, both modules simultaniously
+    if (!loadcell_F_rdy) loadcell_F_rdy = LoadCell_F.startMultiple(stabilizingtime, _tare);
+    if (!loadcell_H_rdy) loadcell_H_rdy = LoadCell_H.startMultiple(stabilizingtime, _tare);
+  }
+  if (LoadCell_F.getTareTimeoutFlag()) {
+    Serial.println("Timeout, check MCU>HX711 no.1 wiring and pin designations");
+  }
+  if (LoadCell_H.getTareTimeoutFlag()) {
+    Serial.println("Timeout, check MCU>HX711 no.2 wiring and pin designations");
+  }
 
-  // Serial.println("Stepper Motors & Drivers Initialized.");
+  Serial.println("Load Cells Initialised.");
 
   // //#### LOAD CELL CALIBRATION & START-UP ####
 
   Serial.println("Do you want to recalibrate the Forefoot load cell? (y: Yes auto (known weight), m: Manual, n: No)");
 
-  // Forefoot load cell calibration
-  calibrateLoadCell(LoadCell_F, calVal_eepromAdress_F); 
+  float calibrationVal_F = calibrateLoadCell(LoadCell_F, calVal_eepromAdress_F);
+  LoadCell_F.setCalFactor(calibrationVal_F);
+  Serial.println("Forefoot Load Cell Calibrated.");
 
-  // Serial.println("Do you want to recalibrate the Heel load cell? (y: Yes auto (known weight), m: Manual, n: No)");
+  Serial.println("Do you want to recalibrate the Heel load cell? (y: Yes auto (known weight), m: Manual, n: No)");
 
-  // // Heel load cell calibration
-  // calibrateLoadCell(LoadCell_H, calVal_eepromAdress_H);
+  float calibrationVal_H = calibrateLoadCell(LoadCell_H, calVal_eepromAdress_H);
+  LoadCell_F.setCalFactor(calibrationVal_H);
+  Serial.println("Heel Load Cell Calibrated.");
 
-    // Ask user to start the test or not
+  // Ask user to start the test or not
   Serial.println("Do you want to start the test? (y: Yes, n: No)");
   
   // Wait for user input (y: Yes, n: No)
@@ -399,7 +396,7 @@ void loop() {
   int stepCount_H = 0;
   int cycleCount = 0;  // Reset cycle count
 
-  stepMotor(stepDelay, LOW, stepsPerRevolution, 'H');
+  stepMotor(stepDelay, LOW, stepsPerRevolution, 'F');
 
   // float force = g*0.001*readLoadCell(LoadCell_F); // Get averaged force
   // Serial.print("Forefoot Force (N): ");
