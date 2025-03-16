@@ -79,7 +79,7 @@ void printFloat3SF(float value) {
     decimalPlaces = 0;  // If the number is too large, print as an integer (no decimal places)
   }
   // Print the value with the calculated decimal places
-  Serial.print(value, decimalPlaces);
+  Serial.println(value, decimalPlaces);
 }
 
 float calibrate(HX711_ADC &LoadCell, int calAddr) {
@@ -401,14 +401,14 @@ void loop() {
 
   Serial.println("TEST PARAMETERS");
   Serial.println("---------------");
-  Serial.print("Test Force = "); 
-  Serial.print(targetForce);
-  Serial.println(" N");
-  Serial.print("Number of Test Cycles = "); 
+  Serial.println("Test Force (N) = "); 
+  Serial.println(targetForce);
+  Serial.println("Number of Test Cycles = "); 
   Serial.println(maxCycles);
-  Serial.print("Number of Cycles Between Calibration = "); 
+  Serial.println("Number of Cycles Between Calibration = "); 
   Serial.println(recalibrationInterval);
   Serial.println("---------------");
+  delay(1000);
 
   while (cycleCount < maxCycles) {
 
@@ -440,7 +440,7 @@ void loop() {
           Serial.print("Forefoot Force After Forward Move: ");
           Serial.println(force_F);
 
-          delay(1000); // Pause before moving back
+          delay(200); // Pause before moving back
 
           // Move Forefoot Motor back after calibration (Fast)
           Serial.println("Returning Forefoot Motor after calibration...");
@@ -477,7 +477,7 @@ void loop() {
           Serial.print("Heel Force After Forward Move: ");
           Serial.println(force_H);
 
-          delay(1000); // Pause before moving back
+          delay(200); // Pause before moving back
 
           // Move Heel Motor back after calibration (Fast)
           Serial.println("Returning Heel Motor after calibration...");
@@ -506,7 +506,7 @@ void loop() {
       Serial.print("Forefoot Force After Forward Move: ");
       Serial.println(force_F);
 
-      delay(1000); // Pause before moving back
+      delay(200); // Pause before moving back
 
       // Move back same number of steps for Forefoot Motor (Fast)
       Serial.println("Returning Forefoot Motor...");
@@ -532,7 +532,7 @@ void loop() {
       Serial.print("Heel Force After Forward Move: ");
       Serial.println(force_H);
 
-      delay(1000); // Pause before moving back
+      delay(200); // Pause before moving back
 
       // Move back same number of steps for Heel Motor (Fast)
       Serial.println("Returning Heel Motor...");
