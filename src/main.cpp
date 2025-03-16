@@ -337,6 +337,8 @@ void setup() {
   // initalise load cells
   LoadCell_F.begin();
   LoadCell_H.begin();
+  LoadCell_F.setReverseOutput(); //uncomment to turn a negative output value to positive
+  LoadCell_H.setReverseOutput(); //uncomment to turn a negative output value to positive
   unsigned long stabilizingtime = 2000; // tare preciscion can be improved by adding a few seconds of stabilizing time
   boolean _tare = true; //set this to false if you don't want tare to be performed in the next step
   byte loadcell_F_rdy = 0;
