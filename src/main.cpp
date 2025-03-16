@@ -216,18 +216,19 @@ float calibrateLoadCell(HX711_ADC &LoadCell, int calAddr) {
         _resume = true; 
         } 
       else if (response == 'n') {  // If the user presses 'n', skip calibration
-        Serial.println("Skipping calibration. Using saved value.");
+        Serial.println("Skipping calibration. Using saved tare offset value.");
         float savedValue;  // Declare a variable to hold the saved calibration value
         EEPROM.get(calAddr, savedValue);  // Retrieve the saved calibration value from EEPROM
         if (savedValue == 0) {
-          Serial.println("Warning: Calibration value is invalid or not set. Using default: ");
+          Serial.println("Warning: Calibration value is invalid or not set. Using default tare offset value.");
           float calibrationVal = 1.0; // Set a default value or ask the user to calibrate
-          Serial.print(calibrationVal);
+          Serial.print("Saved Value: ");
+          Serial.println(calibrationVal);
           return (calibrationVal);
         } else {
           float calibrationVal = savedValue;
-          Serial.println("Saved Value: ");
-          Serial.print(calibrationVal);
+          Serial.print("Saved Value: ");
+          Serial.println(calibrationVal);
           return (calibrationVal);
           _resume = true;
           // LoadCell.setCalFactor(savedValue);  // Use the saved calibration factor
@@ -399,7 +400,7 @@ void loop() {
   int stepCount_H = 0;
   int cycleCount = 0;  // Reset cycle count
 
-  stepMotor(stepDelay, LOW, stepsPerRevolution, 'F');
+  // stepMotor(stepDelay, LOW, stepsPerRevolution, 'F');
 
   float force = g*0.001*readLoadCell(LoadCell_F); // Get averaged force
   Serial.print("Forefoot Force (N): ");
