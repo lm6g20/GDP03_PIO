@@ -46,8 +46,8 @@ const int HX711_sck_H = 7; // HX711 Heel sck pin
 // Microstepping Configuration
 const int microstepSetting = 1; // 1/4 Microstepping
 const int stepsPerRevolution = 200 * microstepSetting; // 800 steps per revolution
-const int stepDelay_fast = 400; // Speed in microseconds - 400
-const int stepDelay_slow = 800; // Speed in microseconds - 400
+const int stepDelay_fast = 400; // Speed in microseconds
+const int stepDelay_slow = 1000; // Speed in microseconds
 
 // EEPROM adress for load cell calibration tare values
 const int calVal_eepromAdress_F = 0; // EEPROM adress for calibration value load cell Forefoot (4 bytes)
@@ -59,12 +59,13 @@ HX711_ADC LoadCell_H(HX711_dout_H, HX711_sck_H); //HX711 2
 unsigned long t = 0;
 volatile boolean newDataReady;
 
-// Target force in grams
-const float targetForce = 10; 
+// g in m/s^2
 const float g = 9.81;
 
-// Set cycle count to zero
-const int maxCycles = 2;
+// Test parameters
+const int maxCycles = 30;
+const int recalibrationInterval = 10; // Recalculate steps every X cycles
+const float targetForce = 30; 
 
 //#### DEFINE FUNCTIONS ####
 
@@ -395,96 +396,155 @@ void setup() {
 //#### INFINITE LOOP ####
 
 void loop() {
-
   int stepCount_F = 0;
   int stepCount_H = 0;
-  int cycleCount = 0;  // Reset cycle counter
-  
-  // Loop to perform motor movement for the set number of cycles
+  int cycleCount = 0;
+
   while (cycleCount < maxCycles) {
 
-    // Move Forefoot Motor until target force is reached
-    Serial.println("Moving Forefoot Motor...");
-    while (true) {
-      float force_F = readLoadCell(LoadCell_F); // Get averaged force
-      Serial.print("Forefoot Force (N): ");
-      printFloat3SF(force_F);
+      // Determine if recalibration is needed
+      bool recalibrate = (cycleCount == 0 || cycleCount % recalibrationInterval == 0);
 
-        if (force_F >= targetForce) {
-            Serial.println("Target force reached!");
-            break;
-        }
+      if (recalibrate) {
+          Serial.println("Calibrating step counts...");
 
-        stepMotor(stepDelay_slow, HIGH, stepsPerRevolution, 'F'); // Move Forefoot Motor
-        stepCount_F++;  // Increment Forefoot step count
-    }
+          // Forefoot Motor Calibration
+          stepCount_F = 0;
+          Serial.println("Moving Forefoot Motor...");
+          while (true) {
+              float force_F = readLoadCell(LoadCell_F);
+              Serial.print("Forefoot Force (N): ");
+              printFloat3SF(force_F);
 
-    delay(1000); // Pause before moving back
+              if (force_F >= targetForce) {
+                  Serial.println("Target force reached!");
+                  break;
+              }
 
-    // Move back same number of steps for Forefoot Motor
-    Serial.println("Returning Forefoot Motor...");
-    for (int i = 0; i < stepCount_F; i++) {
-        stepMotor(stepDelay_fast, LOW, stepsPerRevolution, 'F');
-    }
+              stepMotor(stepDelay_slow, HIGH, stepsPerRevolution, 'F'); // Slow for calibration
+              stepCount_F++;
+          }
 
-    Serial.println("Forefoot Motor Back to Start.");
-    stepCount_F = 0;  // Reset step count after cycle
+          // Read force after forward movement
+          float force_F = readLoadCell(LoadCell_F);
+          Serial.print("Forefoot Force After Forward Move: ");
+          Serial.println(force_F);
 
-    delay(2000); // Pause before next cycle
+          delay(1000); // Pause before moving back
 
-    // Move Heel Motor until target force is reached
-    Serial.println("Moving Heel Motor...");
-    while (true) {
-        float force_H = readLoadCell(LoadCell_F); // Get averaged force
-        Serial.print("Heel Loading Force (H): ");
-        Serial.println(force_H);
+          // Move Forefoot Motor back after calibration (Fast)
+          Serial.println("Returning Forefoot Motor after calibration...");
+          for (int i = 0; i < stepCount_F; i++) {
+              stepMotor(stepDelay_fast, LOW, stepsPerRevolution, 'F');
+          }
 
-        if (force_H >= targetForce) {
-            Serial.println("Target force reached!");
-            break;
-        }
+          // Read force after backward movement
+          force_F = readLoadCell(LoadCell_F);
+          Serial.print("Forefoot Force After Backward Move: ");
+          Serial.println(force_F);
 
-        stepMotor(stepDelay_slow, HIGH, stepsPerRevolution, 'H'); // Move Heel Motor
-        stepCount_H++;  // Increment Heel step count
-    }
+          Serial.println("Forefoot Motor Back to Start.");
 
-    delay(1000);
+          // Heel Motor Calibration
+          stepCount_H = 0;
+          Serial.println("Moving Heel Motor...");
+          while (true) {
+              float force_H = readLoadCell(LoadCell_H);
+              Serial.print("Heel Force (N): ");
+              Serial.println(force_H);
 
-    // Move back same number of steps for Heel Motor
-    Serial.println("Returning Heel Motor...");
-    for (int i = 0; i < stepCount_H; i++) {
-        stepMotor(stepDelay_fast, LOW, stepsPerRevolution, 'H');
-    }
+              if (force_H >= targetForce) {
+                  Serial.println("Target force reached!");
+                  break;
+              }
 
-    Serial.println("Heel Motor Back to Start.");
-    stepCount_H = 0;  // Reset step count after cycle
-    
-    delay(2000); // Pause before next cycle
+              stepMotor(stepDelay_slow, HIGH, stepsPerRevolution, 'H'); // Slow for calibration
+              stepCount_H++;
+          }
 
-    // Increment the cycle count after both motors have completed the cycle
-    cycleCount++; 
-    Serial.print("Cycle count: ");
-    Serial.println(cycleCount);
+          // Read force after forward movement
+          float force_H = readLoadCell(LoadCell_H);
+          Serial.print("Heel Force After Forward Move: ");
+          Serial.println(force_H);
 
-    // Check if the set number of cycles has been reached
-    if (cycleCount >= maxCycles) {
-        Serial.println("Test completed. Max cycles reached: ");
-        Serial.print(maxCycles);
-        Serial.println(" Cycles");
-        Serial.println("***");
-        // Infinite loop that halts the execution
-        while(true) {
-        // Do nothing (infinite loop)
-       }
-   }
+          delay(1000); // Pause before moving back
+
+          // Move Heel Motor back after calibration (Fast)
+          Serial.println("Returning Heel Motor after calibration...");
+          for (int i = 0; i < stepCount_H; i++) {
+              stepMotor(stepDelay_fast, LOW, stepsPerRevolution, 'H');
+          }
+
+          // Read force after backward movement
+          force_H = readLoadCell(LoadCell_H);
+          Serial.print("Heel Force After Backward Move: ");
+          Serial.println(force_H);
+
+          Serial.println("Heel Motor Back to Start.");
+
+          Serial.println("Calibration complete.");
+      }
+
+      // Move Forefoot Motor using stored step count (Fast)
+      Serial.println("Moving Forefoot Motor using stored step count...");
+      for (int i = 0; i < stepCount_F; i++) {
+          stepMotor(stepDelay_fast, HIGH, stepsPerRevolution, 'F');
+      }
+
+      // Read force after forward movement
+      float force_F = readLoadCell(LoadCell_F);
+      Serial.print("Forefoot Force After Forward Move: ");
+      Serial.println(force_F);
+
+      // Move back same number of steps for Forefoot Motor (Fast)
+      Serial.println("Returning Forefoot Motor...");
+      for (int i = 0; i < stepCount_F; i++) {
+          stepMotor(stepDelay_fast, LOW, stepsPerRevolution, 'F');
+      }
+
+      // Read force after backward movement
+      force_F = readLoadCell(LoadCell_F);
+      Serial.print("Forefoot Force After Backward Move: ");
+      Serial.println(force_F);
+
+      Serial.println("Forefoot Motor Back to Start.");
+
+      // Move Heel Motor using stored step count (Fast)
+      Serial.println("Moving Heel Motor using stored step count...");
+      for (int i = 0; i < stepCount_H; i++) {
+          stepMotor(stepDelay_fast, HIGH, stepsPerRevolution, 'H');
+      }
+
+      // Read force after forward movement
+      float force_H = readLoadCell(LoadCell_H);
+      Serial.print("Heel Force After Forward Move: ");
+      Serial.println(force_H);
+
+      // Move back same number of steps for Heel Motor (Fast)
+      Serial.println("Returning Heel Motor...");
+      for (int i = 0; i < stepCount_H; i++) {
+          stepMotor(stepDelay_fast, LOW, stepsPerRevolution, 'H');
+      }
+
+      // Read force after backward movement
+      force_H = readLoadCell(LoadCell_H);
+      Serial.print("Heel Force After Backward Move: ");
+      Serial.println(force_H);
+
+      Serial.println("Heel Motor Back to Start.");
+
+      // Increment cycle count
+      cycleCount++;
+      Serial.print("Cycle count: ");
+      Serial.println(cycleCount);
+
+      // Check if the set number of cycles has been reached
+      if (cycleCount >= maxCycles) {
+          Serial.println("Test completed. Max cycles reached: ");
+          Serial.print(maxCycles);
+          Serial.println(" Cycles");
+          Serial.println("***");
+          while (true) {} // Halt execution
+      }
   }
 }
-
-// TESTING LOOP CODE
-  // stepMotor(stepDelay, LOW, stepsPerRevolution, 'F');
-
-  // float force_F = readLoadCell(LoadCell_F); // Get averaged force
-  // Serial.print("Forefoot Force (N): ");
-  // printFloat3SF(force_F);
-
-  // delay(500);
