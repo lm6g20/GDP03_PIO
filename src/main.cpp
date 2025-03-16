@@ -158,18 +158,20 @@ float calibrate(HX711_ADC &LoadCell, int calAddr) {
       }
     }
   }
+  Serial.println("End of auto calibration value");
   Serial.println("***");
   return(newCalibrationValue);
 }
 
 float manualCalibrationInput(HX711_ADC &LoadCell, int calAddr) {
   Serial.println("Performing manual calibration...");
-  float oldCalibrationValue = LoadCell.getCalFactor();
+  float oldCalibrationValue;  // Declare a variable to hold the saved calibration value
+  EEPROM.get(calAddr, oldCalibrationValue);  // Retrieve the saved calibration value from EEPROM
   boolean _resume = false;
   Serial.println("***");
   Serial.print("Current value is: ");
   Serial.println(oldCalibrationValue);
-  Serial.println("Now, send the new value from serial monitor, i.e 14.4.");
+  Serial.println("Now, send the new value from serial monitor (e.g. 14.4).");
   float newCalibrationValue;
   while (_resume == false) {
     if (Serial.available() > 0) {
@@ -239,15 +241,19 @@ float calibrateLoadCell(HX711_ADC &LoadCell, int calAddr) {
           float calibrationVal = 1.0; // Set a default value or ask the user to calibrate
           Serial.print("Saved Value: ");
           Serial.println(calibrationVal);
+          Serial.println("End of calibration value");
+          Serial.println("***");
           return(calibrationVal);
           _resume = true;
-        } else {
+        } 
+        else {
           float calibrationVal = savedValue;
           Serial.print("Saved Value: ");
           Serial.println(calibrationVal);
+          Serial.println("End of calibration.");
+          Serial.println("***");
           return(calibrationVal);
           _resume = true;
-          // LoadCell.setCalFactor(savedValue);  // Use the saved calibration factor
         }
        }
       else {
@@ -258,22 +264,6 @@ float calibrateLoadCell(HX711_ADC &LoadCell, int calAddr) {
     }
    }
 
-// float readLoadCell(HX711_ADC &LoadCell){
-//   static boolean newDataReady = 0;
-//   if (LoadCell.update()) newDataReady = true;
-//   const int serialPrintInterval = 0; //increase value to slow down serial print activity
-//   if (newDataReady) {
-//     if (millis() > t + serialPrintInterval) {
-//       float i = LoadCell.getData();
-//       newDataReady = 0;
-//       Serial.print("Load_cell output val: ");
-//       printFloat3SF(i);
-//       t = millis();
-//       return ((i/0.001)*g);
-//     }
-//   }
-// }
-
 float readLoadCell(HX711_ADC &LoadCell) {
   static boolean newDataReady = 0; // Flag to check if new data is available
   if (LoadCell.update()) newDataReady = true; // Update load cell and set flag if new data is ready
@@ -281,8 +271,9 @@ float readLoadCell(HX711_ADC &LoadCell) {
   if (newDataReady) {
     if (millis() > t + serialPrintInterval) {
       float i = LoadCell.getData(); // Issue: This declares a local `i` which shadows the static `i`
+      i = abs(i); // always positive
       newDataReady = 0; // Reset the flag to indicate no new data
-      Serial.print("Load_cell output val: ");
+      // Serial.print("Load_cell output val: ");
       printFloat3SF(i); // Function to print the value of `i`
       t = millis(); // Update the timing for serial printing
       return (i / 1000) * g;
@@ -337,8 +328,6 @@ void setup() {
   // initalise load cells
   LoadCell_F.begin();
   LoadCell_H.begin();
-  LoadCell_F.setReverseOutput(); //uncomment to turn a negative output value to positive
-  LoadCell_H.setReverseOutput(); //uncomment to turn a negative output value to positive
   unsigned long stabilizingtime = 2000; // tare preciscion can be improved by adding a few seconds of stabilizing time
   boolean _tare = true; //set this to false if you don't want tare to be performed in the next step
   byte loadcell_F_rdy = 0;
