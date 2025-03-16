@@ -46,7 +46,8 @@ const int HX711_sck_H = 7; // HX711 Heel sck pin
 // Microstepping Configuration
 const int microstepSetting = 1; // 1/4 Microstepping
 const int stepsPerRevolution = 200 * microstepSetting; // 800 steps per revolution
-const int stepDelay = 400; // Speed in microseconds - 60
+const int stepDelay_fast = 400; // Speed in microseconds - 400
+const int stepDelay_slow = 800; // Speed in microseconds - 400
 
 // EEPROM adress for load cell calibration tare values
 const int calVal_eepromAdress_F = 0; // EEPROM adress for calibration value load cell Forefoot (4 bytes)
@@ -59,7 +60,7 @@ unsigned long t = 0;
 volatile boolean newDataReady;
 
 // Target force in grams
-const float targetForce = 2000.0; 
+const float targetForce = 10; 
 const float g = 9.81;
 
 // Set cycle count to zero
@@ -395,91 +396,88 @@ void setup() {
 
 void loop() {
 
-  // int stepCount_F = 0;
-  // int stepCount_H = 0;
-  // int cycleCount = 0;  // Reset cycle counter
-
-  // float force_H = readLoadCell(LoadCell_H); // Get averaged force
-  // Serial.print("Heel Force (N): ");
-  // Serial.println(force_H);
+  int stepCount_F = 0;
+  int stepCount_H = 0;
+  int cycleCount = 0;  // Reset cycle counter
   
-  // delay(500);
-
   // Loop to perform motor movement for the set number of cycles
-  // while (cycleCount < maxCycles) {
+  while (cycleCount < maxCycles) {
 
-  //   // Move Forefoot Motor until target force is reached
-  //   Serial.println("Moving Forefoot Motor...");
-  //   while (true) {
-  //       float force = readLoadCell('F'); // Get averaged force
-  //       Serial.print("Forefoot Loading Force (N): ");
-  //       Serial.println(force);
+    // Move Forefoot Motor until target force is reached
+    Serial.println("Moving Forefoot Motor...");
+    while (true) {
+      float force_F = readLoadCell(LoadCell_F); // Get averaged force
+      Serial.print("Forefoot Force (N): ");
+      printFloat3SF(force_F);
 
-  //       if (force >= targetForce) {
-  //           Serial.println("Target force reached!");
-  //           break;
-  //       }
+        if (force_F >= targetForce) {
+            Serial.println("Target force reached!");
+            break;
+        }
 
-  //       stepMotor(stepDelay, HIGH, stepsPerRevolution, 'F'); // Move Forefoot Motor
-  //       stepCount_F++;  // Increment Forefoot step count
-  //   }
+        stepMotor(stepDelay_slow, HIGH, stepsPerRevolution, 'F'); // Move Forefoot Motor
+        stepCount_F++;  // Increment Forefoot step count
+    }
 
-  //   delay(1000); // Pause before moving back
+    delay(1000); // Pause before moving back
 
-  //   // Move back same number of steps for Forefoot Motor
-  //   Serial.println("Returning Forefoot Motor...");
-  //   for (int i = 0; i < stepCount_F; i++) {
-  //       stepMotor(stepDelay, LOW, stepsPerRevolution, 'F');
-  //   }
+    // Move back same number of steps for Forefoot Motor
+    Serial.println("Returning Forefoot Motor...");
+    for (int i = 0; i < stepCount_F; i++) {
+        stepMotor(stepDelay_fast, LOW, stepsPerRevolution, 'F');
+    }
 
-  //   Serial.println("Forefoot Motor Back to Start.");
-  //   stepCount_F = 0;  // Reset step count after cycle
+    Serial.println("Forefoot Motor Back to Start.");
+    stepCount_F = 0;  // Reset step count after cycle
 
-  //   delay(2000); // Pause before next cycle
+    delay(2000); // Pause before next cycle
 
-  //   // Move Heel Motor until target force is reached
-  //   Serial.println("Moving Heel Motor...");
-  //   while (true) {
-  //       float force = readLoadCell('H'); // Get averaged force
-  //       Serial.print("Heel Loading Force (H): ");
-  //       Serial.println(force);
+    // Move Heel Motor until target force is reached
+    Serial.println("Moving Heel Motor...");
+    while (true) {
+        float force_H = readLoadCell(LoadCell_F); // Get averaged force
+        Serial.print("Heel Loading Force (H): ");
+        Serial.println(force_H);
 
-  //       if (force >= targetForce) {
-  //           Serial.println("Target force reached!");
-  //           break;
-  //       }
+        if (force_H >= targetForce) {
+            Serial.println("Target force reached!");
+            break;
+        }
 
-  //       stepMotor(stepDelay, HIGH, stepsPerRevolution, 'H'); // Move Heel Motor
-  //       stepCount_H++;  // Increment Heel step count
-  //   }
+        stepMotor(stepDelay_slow, HIGH, stepsPerRevolution, 'H'); // Move Heel Motor
+        stepCount_H++;  // Increment Heel step count
+    }
 
-  //   delay(1000);
+    delay(1000);
 
-  //   // Move back same number of steps for Heel Motor
-  //   Serial.println("Returning Heel Motor...");
-  //   for (int i = 0; i < stepCount_H; i++) {
-  //       stepMotor(stepDelay, LOW, stepsPerRevolution, 'H');
-  //   }
+    // Move back same number of steps for Heel Motor
+    Serial.println("Returning Heel Motor...");
+    for (int i = 0; i < stepCount_H; i++) {
+        stepMotor(stepDelay_fast, LOW, stepsPerRevolution, 'H');
+    }
 
-  //   Serial.println("Heel Motor Back to Start.");
-  //   stepCount_H = 0;  // Reset step count after cycle
+    Serial.println("Heel Motor Back to Start.");
+    stepCount_H = 0;  // Reset step count after cycle
     
-  //   delay(2000); // Pause before next cycle
+    delay(2000); // Pause before next cycle
 
-  //   // Increment the cycle count after both motors have completed the cycle
-  //   cycleCount++; 
-  //   Serial.print("Cycle count: ");
-  //   Serial.println(cycleCount);
+    // Increment the cycle count after both motors have completed the cycle
+    cycleCount++; 
+    Serial.print("Cycle count: ");
+    Serial.println(cycleCount);
 
-  //   // Check if the set number of cycles has been reached
-  //   if (cycleCount >= maxCycles) {
-  //       Serial.println("Test completed. Max cycles reached: ");
-  //       Serial.print(maxCycles);
-  //       Serial.println(" Cycles");
-  //       Serial.println("***");
-  //       break;  // Exit the loop after completing the desired number of cycles
-  //   }
-  // }
+    // Check if the set number of cycles has been reached
+    if (cycleCount >= maxCycles) {
+        Serial.println("Test completed. Max cycles reached: ");
+        Serial.print(maxCycles);
+        Serial.println(" Cycles");
+        Serial.println("***");
+        // Infinite loop that halts the execution
+        while(true) {
+        // Do nothing (infinite loop)
+       }
+   }
+  }
 }
 
 // TESTING LOOP CODE
