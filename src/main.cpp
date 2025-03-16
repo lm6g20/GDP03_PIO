@@ -370,6 +370,15 @@ void setup() {
       if (response == 'y' || response == 'Y') {
         Serial.println("Starting test...");
         Serial.println("! CAUTION: ACUTATOR MOTION !");
+        Serial.println("TEST PARAMETERS");
+        Serial.println("---------------");
+        Serial.println("Test Force (N) = "); 
+        Serial.println(targetForce);
+        Serial.println("Number of Test Cycles = "); 
+        Serial.println(maxCycles);
+        Serial.println("Number of Cycles Between Calibration = "); 
+        Serial.println(recalibrationInterval);
+        Serial.println("---------------");
         Serial.println("Test commencing in:");
         for (int i = 10; i > 0; i--) {
           Serial.print(i);  // Print the remaining time
@@ -398,17 +407,6 @@ void loop() {
   int stepCount_F = 0;
   int stepCount_H = 0;
   int cycleCount = 0;
-
-  Serial.println("TEST PARAMETERS");
-  Serial.println("---------------");
-  Serial.println("Test Force (N) = "); 
-  Serial.println(targetForce);
-  Serial.println("Number of Test Cycles = "); 
-  Serial.println(maxCycles);
-  Serial.println("Number of Cycles Between Calibration = "); 
-  Serial.println(recalibrationInterval);
-  Serial.println("---------------");
-  delay(1000);
 
   while (cycleCount < maxCycles) {
 
