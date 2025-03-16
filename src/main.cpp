@@ -23,9 +23,9 @@
 
 #include <Arduino.h> // Include the core Arduino functions (digitalWrite, pinMode, etc.)
 #include <HX711_ADC.h> // Include the HX711_ADC library for interfacing with the HX711 load cell amplifier
-// #if defined(ESP8266)|| defined(ESP32) || defined(AVR) // Check if the board is ESP8266, ESP32, or AVR-based (Arduino Mega)
+#if defined(ESP8266)|| defined(ESP32) || defined(AVR) // Check if the board is ESP8266, ESP32, or AVR-based (Arduino Mega)
 #include <EEPROM.h> // Include the EEPROM library for storing calibration values and settings in non-volatile memory
-// #endif // End of conditional compilation for EEPROM inclusion
+#endif // End of conditional compilation for EEPROM inclusion
 
 //##### DEFINE PINOUT ####
 
@@ -56,6 +56,7 @@ const int calVal_eepromAdress_H = 4; // EEPROM adress for calibration value load
 HX711_ADC LoadCell_F(HX711_dout_F, HX711_sck_F); //HX711 1
 HX711_ADC LoadCell_H(HX711_dout_H, HX711_sck_H); //HX711 2
 unsigned long t = 0;
+volatile boolean newDataReady;
 
 // Target force in grams
 const float targetForce = 2000.0; 
@@ -65,6 +66,19 @@ const float g = 9.81;
 const int maxCycles = 2;
 
 //#### DEFINE FUNCTIONS ####
+
+void printFloat3SF(float value) {
+  // If the value is very small or very large, adjust precision accordingly
+  int digitsBeforeDecimal = log10(abs(value));  // Number of digits before the decimal point
+  // Calculate the number of decimal places to print
+  int decimalPlaces = 3 - digitsBeforeDecimal;
+  // Ensure the number is printed with 3 significant figures
+  if (decimalPlaces < 0) {
+    decimalPlaces = 0;  // If the number is too large, print as an integer (no decimal places)
+  }
+  // Print the value with the calculated decimal places
+  Serial.println(value, decimalPlaces);
+}
 
 float calibrate(HX711_ADC &LoadCell, int calAddr) {
   Serial.println("Performing automatic calibration...");
@@ -201,18 +215,19 @@ float manualCalibrationInput(HX711_ADC &LoadCell, int calAddr) {
 }
 
 float calibrateLoadCell(HX711_ADC &LoadCell, int calAddr) {
+  float calibrationVal = 0;
   boolean _resume = false;
   while (_resume == false){
     if (Serial.available() > 0) {  // Check if user has typed something in Serial Monitor
       char response = Serial.read();  // Read the response character
       if (response == 'y') {  // If the user presses 'y', start the regular calibration process
         float calibrationVal = calibrate(LoadCell, calAddr);
-        return (calibrationVal);
+        return(calibrationVal);
         _resume = true;
         }  // Call the calibrate function to begin the calibration process
       else if (response == 'm') {  // If the user presses 'm', start the manual calibration process
         float calibrationVal = manualCalibrationInput(LoadCell, calAddr);  // Call the manual calibration function
-        return (calibrationVal);
+        return(calibrationVal);
         _resume = true; 
         } 
       else if (response == 'n') {  // If the user presses 'n', skip calibration
@@ -224,69 +239,55 @@ float calibrateLoadCell(HX711_ADC &LoadCell, int calAddr) {
           float calibrationVal = 1.0; // Set a default value or ask the user to calibrate
           Serial.print("Saved Value: ");
           Serial.println(calibrationVal);
-          return (calibrationVal);
+          return(calibrationVal);
+          _resume = true;
         } else {
           float calibrationVal = savedValue;
           Serial.print("Saved Value: ");
           Serial.println(calibrationVal);
-          return (calibrationVal);
+          return(calibrationVal);
           _resume = true;
           // LoadCell.setCalFactor(savedValue);  // Use the saved calibration factor
         }
-        // _resume = true;  // Break out of the loop once the calibration value is set
-        } 
+       }
       else {
-        // If the user enters an invalid input, ask them again
-        Serial.println("Invalid input. Please enter 'y' for regular calibration, 'm' for manual calibration, or 'n' to skip.");
-        }
+      // If the user enters an invalid input, ask them again
+      Serial.println("Invalid input. Please enter 'y' for regular calibration, 'm' for manual calibration, or 'n' to skip.");
+      }
       }
     }
    }
 
-// Function to read and average the load cell values
-// void readLoadCell(char loadCellID, int samples = 5, int delayBetweenSamples = 10) {
-//   float total = 0.0;
-//   for (int i = 0; i < samples; i++) {
-//       if (loadCellID == 'F') {
-//           LoadCell_F.update();
-//           total += LoadCell_F.getData();
-//       } else if (loadCellID == 'H') {
-//           LoadCell_H.update();
-//           total += LoadCell_H.getData();
-//       } else {
-//           Serial.println("Invalid Load Cell Selection!");
-//           return; // Error return value
-//       }
-//       delay(delayBetweenSamples); // Short delay between samples
+// float readLoadCell(HX711_ADC &LoadCell){
+//   static boolean newDataReady = 0;
+//   if (LoadCell.update()) newDataReady = true;
+//   const int serialPrintInterval = 0; //increase value to slow down serial print activity
+//   if (newDataReady) {
+//     if (millis() > t + serialPrintInterval) {
+//       float i = LoadCell.getData();
+//       newDataReady = 0;
+//       Serial.print("Load_cell output val: ");
+//       printFloat3SF(i);
+//       t = millis();
+//       return ((i/0.001)*g);
+//     }
 //   }
-//   forceread = total/samples;
-//   return forceread; // Return averaged force
-// }
-// float readLoadCell(char loadCellID, int samples = 5, int delayBetweenSamples = 10) {
-//   float total = 0.0;
-
-//   for (int i = 0; i < samples; i++) {
-//       if (loadCellID == 'F') {
-//           LoadCell_F.update();
-//           total += LoadCell_F.getData();
-//       } else if (loadCellID == 'H') {
-//           LoadCell_H.update();
-//           total += LoadCell_H.getData();
-//       } else {
-//           Serial.println("Invalid Load Cell Selection!");
-//           return; // Return an error value
-//       }
-//       delay(delayBetweenSamples);
-//   }
-//   float forceread = total / samples;  // Compute the average
-//   return forceread; // Return the averaged force value
 // }
 
-float readLoadCell(HX711_ADC &LoadCell){
-  float i = LoadCell.getData();
-  Serial.print("Load_cell output val: ");
-  Serial.println(i);
-  return i;
+float readLoadCell(HX711_ADC &LoadCell) {
+  static boolean newDataReady = 0; // Flag to check if new data is available
+  if (LoadCell.update()) newDataReady = true; // Update load cell and set flag if new data is ready
+  const int serialPrintInterval = 0; // No delay between serial prints (if serial print is used)
+  if (newDataReady) {
+    if (millis() > t + serialPrintInterval) {
+      float i = LoadCell.getData(); // Issue: This declares a local `i` which shadows the static `i`
+      newDataReady = 0; // Reset the flag to indicate no new data
+      Serial.print("Load_cell output val: ");
+      printFloat3SF(i); // Function to print the value of `i`
+      t = millis(); // Update the timing for serial printing
+      return (i / 1000) * g;
+    }
+  }
 }
 
 // Function to move a stepper by one microstep
@@ -364,7 +365,7 @@ void setup() {
   Serial.println("Do you want to recalibrate the Heel load cell? (y: Yes auto (known weight), m: Manual, n: No)");
 
   float calibrationVal_H = calibrateLoadCell(LoadCell_H, calVal_eepromAdress_H);
-  LoadCell_F.setCalFactor(calibrationVal_H);
+  LoadCell_H.setCalFactor(calibrationVal_H);
   Serial.println("Heel Load Cell Calibrated.");
 
   // Ask user to start the test or not
@@ -396,15 +397,23 @@ void setup() {
 
 void loop() {
 
-  int stepCount_F = 0;
-  int stepCount_H = 0;
-  int cycleCount = 0;  // Reset cycle count
+  // int stepCount_F = 0;
+  // int stepCount_H = 0;
+  // int cycleCount = 0;  // Reset cycle count
 
   // stepMotor(stepDelay, LOW, stepsPerRevolution, 'F');
 
-  float force = g*0.001*readLoadCell(LoadCell_F); // Get averaged force
+  float force_F = readLoadCell(LoadCell_F); // Get averaged force
   Serial.print("Forefoot Force (N): ");
-  Serial.println(force);
+  printFloat3SF(force_F);
+
+  delay(500);
+
+  // float force_H = readLoadCell(LoadCell_H); // Get averaged force
+  // Serial.print("Heel Force (N): ");
+  // Serial.println(force_H);
+  
+  // delay(500);
 
   // Loop to perform motor movement for the set number of cycles
   // while (cycleCount < maxCycles) {
@@ -481,48 +490,4 @@ void loop() {
   //       break;  // Exit the loop after completing the desired number of cycles
   //   }
   // }
-
-
-  //###############################
-  // #### LEGACY - FIRST TEST ####
-  // digitalWrite(DIR_F,HIGH); // Enables the motor to move in a particular direction
-  // for (int i = 0; i < 6; i++) {  // 48 times = one revolution
-  //   for (int x = 0; x < 3200; x++) { // 3200 pulse/rev
-  //     digitalWrite(PUL_F, HIGH);
-  //     delayMicroseconds(60);
-  //     digitalWrite(PUL_F, LOW);
-  //     delayMicroseconds(60);
-  // }
-  // }
-  // delay(500); 
-  // digitalWrite(DIR_F,LOW); // Enables the motor to move in a particular direction
-  // for (int i = 0; i < 6; i++) {  // 48 times = one revolution
-  //   for (int x = 0; x < 3200; x++) { // 3200 pulse/rev
-  //     digitalWrite(PUL_F, HIGH);
-  //     delayMicroseconds(60);
-  //     digitalWrite(PUL_F, LOW);
-  //     delayMicroseconds(60);
-  // }
-  // }
-  //   delay(500);
-  //     digitalWrite(DIR_H,HIGH); // Enables the motor to move in a particular direction
-  // for (int i = 0; i < 24; i++) {  // 48 times = one revolution
-  //   for (int x = 0; x < 3200; x++) { // 3200 pulse/rev
-  //     digitalWrite(PUL_H, HIGH);
-  //     delayMicroseconds(60);
-  //     digitalWrite(PUL_H, LOW);
-  //     delayMicroseconds(60);
-  // }
-  // }
-  // delay(500); 
-  // digitalWrite(DIR_H,LOW); // Enables the motor to move in a particular direction
-  // for (int i = 0; i < 24; i++) {  // 48 times = one revolution
-  //   for (int x = 0; x < 3200; x++) { // 3200 pulse/rev
-  //     digitalWrite(PUL_H, HIGH);
-  //     delayMicroseconds(60);
-  //     digitalWrite(PUL_H, LOW);
-  //     delayMicroseconds(60);
-  // }
-  // }
-  // delay(500);
 }
