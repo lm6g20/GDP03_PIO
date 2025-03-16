@@ -347,7 +347,7 @@ void setup() {
 
   // //#### LOAD CELL CALIBRATION & START-UP ####
 
-  Serial.println("Do you want to recalibrate the Forefoot load cell? (y: Yes auto (known weight), m: Manual, n: No)");
+  Serial.println("Do you want to recalibrate the Forefoot load cell? (y: Yes Auto (Using a Known Mass), m: Manual, n: No)");
 
   float calibrationVal_F = calibrateLoadCell(LoadCell_F, calVal_eepromAdress_F);
   LoadCell_F.setCalFactor(calibrationVal_F);
@@ -369,6 +369,13 @@ void setup() {
       if (response == 'y' || response == 'Y') {
         Serial.println("Starting test...");
         Serial.println("! CAUTION: ACUTATOR MOTION !");
+        Serial.println("Test commencing in:");
+        for (int i = 10; i > 0; i--) {
+          Serial.print(i);  // Print the remaining time
+          Serial.println("...");  // Append ellipsis for effect
+          delay(1000);  // Wait for 1 second
+        }
+        Serial.println("Test commenced!");
         Serial.println("***");
         break; // Break the loop and start motor movement
       } else if (response == 'n' || response == 'N') {
@@ -390,15 +397,7 @@ void loop() {
 
   // int stepCount_F = 0;
   // int stepCount_H = 0;
-  // int cycleCount = 0;  // Reset cycle count
-
-  // stepMotor(stepDelay, LOW, stepsPerRevolution, 'F');
-
-  float force_F = readLoadCell(LoadCell_F); // Get averaged force
-  Serial.print("Forefoot Force (N): ");
-  printFloat3SF(force_F);
-
-  delay(500);
+  // int cycleCount = 0;  // Reset cycle counter
 
   // float force_H = readLoadCell(LoadCell_H); // Get averaged force
   // Serial.print("Heel Force (N): ");
@@ -482,3 +481,12 @@ void loop() {
   //   }
   // }
 }
+
+// TESTING LOOP CODE
+  // stepMotor(stepDelay, LOW, stepsPerRevolution, 'F');
+
+  // float force_F = readLoadCell(LoadCell_F); // Get averaged force
+  // Serial.print("Forefoot Force (N): ");
+  // printFloat3SF(force_F);
+
+  // delay(500);
