@@ -79,7 +79,7 @@ void printFloat3SF(float value) {
     decimalPlaces = 0;  // If the number is too large, print as an integer (no decimal places)
   }
   // Print the value with the calculated decimal places
-  Serial.println(value, decimalPlaces);
+  Serial.print(value, decimalPlaces);
 }
 
 float calibrate(HX711_ADC &LoadCell, int calAddr) {
@@ -88,7 +88,6 @@ float calibrate(HX711_ADC &LoadCell, int calAddr) {
   Serial.println("Start calibration:");
   Serial.println("Place the load cell an a level stable surface.");
   Serial.println("Remove any load applied to the load cell.");
-  Serial.println("Send 't' from serial monitor to set the tare offset.");
   
   boolean _resume = false;
   while (_resume == false) {
@@ -400,6 +399,17 @@ void loop() {
   int stepCount_H = 0;
   int cycleCount = 0;
 
+  Serial.println("TEST PARAMETERS");
+  Serial.println("---------------");
+  Serial.print("Test Force = "); 
+  Serial.print(targetForce);
+  Serial.println(" N");
+  Serial.print("Number of Test Cycles = "); 
+  Serial.println(maxCycles);
+  Serial.print("Number of Cycles Between Calibration = "); 
+  Serial.println(recalibrationInterval);
+  Serial.println("---------------");
+
   while (cycleCount < maxCycles) {
 
       // Determine if recalibration is needed
@@ -496,6 +506,8 @@ void loop() {
       Serial.print("Forefoot Force After Forward Move: ");
       Serial.println(force_F);
 
+      delay(1000); // Pause before moving back
+
       // Move back same number of steps for Forefoot Motor (Fast)
       Serial.println("Returning Forefoot Motor...");
       for (int i = 0; i < stepCount_F; i++) {
@@ -519,6 +531,8 @@ void loop() {
       float force_H = readLoadCell(LoadCell_H);
       Serial.print("Heel Force After Forward Move: ");
       Serial.println(force_H);
+
+      delay(1000); // Pause before moving back
 
       // Move back same number of steps for Heel Motor (Fast)
       Serial.println("Returning Heel Motor...");
