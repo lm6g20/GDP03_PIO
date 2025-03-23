@@ -39,7 +39,7 @@ const int HX711_sck_F = 5; // HX711 Forefoot sck pin
 // Define pins for Heel Stepper Motor
 const int DIR_H = 37; // Direction pin for Heel stepper driver
 const int PUL_H = 36; // Pulse pin for Heel stepper driver
-const int ENA_H = 28; // Enable pin for Heel stepper driver
+const int ENA_H = 29; // Enable pin for Heel stepper driver
 const int HX711_dout_H = 6; // HX711 Heel dout pin
 const int HX711_sck_H = 7; // HX711 Heel sck pin
 
