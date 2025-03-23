@@ -32,7 +32,7 @@
 // Define pins for Forefoot Loading Node
 const int DIR_F = 35; // Direction pin for Forefoot stepper driver
 const int PUL_F = 34; // Pulse pin for Forefoot stepper driver
-const int ENA_F = 53; // Enable pin for Forefoot stepper driver
+const int ENA_F = 28; // Enable pin for Forefoot stepper driver
 const int HX711_dout_F = 4; // HX711 Forefoot dout pin
 const int HX711_sck_F = 5; // HX711 Forefoot sck pin
 
