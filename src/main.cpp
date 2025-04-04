@@ -44,9 +44,9 @@ const int HX711_dout_H = 6; // HX711 Heel dout pin
 const int HX711_sck_H = 7; // HX711 Heel sck pin
 
 // Microstepping Configuration
-const int microstepSetting = 1; // 1/4 Microstepping
+const int microstepSetting = 4; // 1/4 Microstepping
 const int stepsPerRevolution = 200 * microstepSetting; // 800 steps per revolution
-const int stepDelay_fast = 400; // Speed in microseconds
+const int stepDelay_fast = 300; // Speed in microseconds 400
 const int stepDelay_slow = 1000; // Speed in microseconds
 
 // EEPROM adress for load cell calibration tare values
@@ -63,9 +63,9 @@ volatile boolean newDataReady;
 const float g = 9.81;
 
 // Test parameters
-const int maxCycles = 30;
-const int recalibrationInterval = 10; // Recalculate steps every X cycles
-const float targetForce = 30; 
+const int maxCycles = 79;
+const int recalibrationInterval = 40; // Recalculate steps every X cycles
+const float targetForce = 1.5; 
 
 //#### DEFINE FUNCTIONS ####
 
