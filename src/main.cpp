@@ -63,8 +63,8 @@ volatile boolean newDataReady;
 const float g = 9.81;
 
 // Test parameters
-const int maxCycles = 79;
-const int recalibrationInterval = 40; // Recalculate steps every X cycles
+const int maxCycles = 1000;
+const int recalibrationInterval = 1001; // Recalculate steps every X cycles
 const float targetForce = 1.5; 
 
 //#### DEFINE FUNCTIONS ####
